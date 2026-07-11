@@ -65,6 +65,8 @@ Hooks may call `scripts/pathfinder-log.sh` on `SubagentStart`, `SubagentStop`, a
 
 This is **best-effort orchestration telemetry**. It is not an audit trail, not a complete session record, and not a full session history. Missed events are expected if hooks fail or are disabled. If hooks cannot be installed, use diagnostics only; pathfinder does not rely on the orchestrator remembering to log.
 
+A separate optional `SessionStart` hook (`templates/hooks/pathfinder-version-watch.md`) injects a revalidation reminder at session start when Claude Code has updated, following the checklist in `docs/REVALIDATION.md`.
+
 ```bash
 ./scripts/pathfinder-diag.sh   # posix
 ./scripts/pathfinder-stats.sh  # empty logs are normal

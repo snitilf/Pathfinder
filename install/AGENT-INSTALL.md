@@ -131,6 +131,7 @@ Do not modify content outside the markers you are replacing/removing.
 - Write `~/.claude/pathfinder/VERSION` from repo `VERSION`.
 - If telemetry opted in: copy `scripts/pathfinder-log.sh` to `~/.claude/pathfinder/bin/pathfinder-log.sh`, `chmod +x`.
 - Optionally copy `pathfinder-diag.sh` and `pathfinder-stats.sh` next to it (POSIX).
+- Second, separate opt-in: the version-watch hook. Same pattern - copy its script to `~/.claude/pathfinder/bin/`, `chmod +x`, and add a `SessionStart` hook entry per `templates/hooks/pathfinder-version-watch.md`.
 
 ### 3.6 Project-local config
 

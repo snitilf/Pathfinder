@@ -89,7 +89,7 @@ Policy prose never names models. Role frontmatter uses aliases (`opus`, `sonnet`
 
 | Doc | Contents |
 |---|---|
-| [docs/research.md](./docs/research.md) | Sourced research (preserved) |
+| [docs/research.md](./docs/research.md) | Sourced research |
 | [docs/design.md](./docs/design.md) | Design rationale + pathfinder v1 appendix |
 | [docs/usage-examples.md](./docs/usage-examples.md) | Short examples |
 | [docs/improvement-roadmap.md](./docs/improvement-roadmap.md) | Deferred ideas only |

@@ -1,4 +1,4 @@
-# Pathfinder v1.0 - Step 7 verification report
+# Pathfinder v1.0
 
 Date: 2026-07-11. Static checks, dry-run, and documentation citations for the pathfinder tree as shipped.
 

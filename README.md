@@ -1,47 +1,69 @@
 ![pathfinder](docs/assets/pathfinder.png)
 
-Multi-model orchestration for [Claude Code](https://code.claude.com): the frontier model plans and reviews in the main session; cheaper roles do volume work; quality is protected by fresh-context verification. Configuration only (agents, settings, policy, optional hooks). Not a runtime product.
+Pathfinder is **global configuration for [Claude Code](https://code.claude.com)**. It is not a standalone CLI, not a runtime, not a model router, and not an enforcement system. You install a set of plain files under `~/.claude/` (agent definitions, a policy text block, a couple of settings keys, optional shell hooks), and Claude Code reads them the same way it reads any other configuration.
 
-Research and design rationale live under `docs/`. This repository is the pathfinder configuration layer itself.
+## The problem it solves
 
-## Why
+If one frontier model handles an entire coding session, most of your subscription quota goes to work that never needed frontier reasoning: searching files, running tests, bulk edits, documentation. Pathfinder gives Claude Code **delegation guidance and specialist roles** so the expensive model spends its effort where judgment matters and cheaper models carry the volume. Claude Code itself decides whether to delegate on any given task, based on the agent descriptions and the policy text; pathfinder shapes those decisions, it does not force them.
 
-Frontier sessions burn subscription limits fast. Most tokens in a coding session are search, mechanical edits, tests, and docs that cheaper models handle. Official guidance favors subagent delegation and independent fresh-context verifiers over self-critique. pathfinder packages that as a small global config.
+## How one task flows
 
-## How it works
+Say you ask for a bug fix in an unfamiliar part of the codebase:
 
-Three layers under `~/.claude/`:
+1. The **main session** (your chosen model) reads the request and plans.
+2. It sends reconnaissance to `scout` or `Explore`, low-cost roles that locate the relevant files and report back with `file:line` findings.
+3. The fix itself goes to `executor` (judgment work) or `mech-executor` (fully-specified mechanical work), depending on what the plan calls for.
+4. Before reporting done, an independent **verifier** with fresh context tries to refute the claim that the fix works. Verifiers never fix anything; they return CONFIRMED or REFUTED with evidence.
 
-| Layer | Location | Job |
-|---|---|---|
-| Machine | `settings.json` | Who orchestrates (`best`) + `fallbackModel` chain |
-| Roles | `agents/*.md` | Seven roles with model/effort frontmatter |
-| Policy | `CLAUDE.md` | How to delegate (role names only, never model names in prose) |
+Anything security-sensitive (auth, secrets, crypto, validation) is routed to `security-executor` instead of running in the main session.
+
+## What you get
+
+- Seven specialist roles with model and effort set per role (see table below).
+- A policy block that tells the orchestrating session when to delegate, when not to, and how much verification each kind of work needs.
+- Tiered verification: none / light / standard / heavy.
+- Optional local telemetry (which subagent started and stopped, session end) and an optional update reminder.
+- An install runbook with diagnostics, updates, and uninstall.
 
 | Role | Model alias | Effort | Used for |
 |---|---|---|---|
 | `scout` | haiku | low | Read-only lookups |
-| `Explore` | haiku | low | Overrides built-in Explore (pins cheap recon) |
+| `Explore` | haiku | low | Overrides the built-in Explore (pins cheap recon) |
 | `mech-executor` | sonnet | low | Fully-specified mechanical work |
 | `executor` | opus | medium | Implementation needing judgment |
 | `light-verifier` | sonnet | low | Light check of mechanical work |
-| `verifier` | opus | medium | Standard / heavy verification |
-| `security-executor` | opus | high | Security-sensitive work (kept off frontier) |
+| `verifier` | opus | medium | Standard and heavy verification |
+| `security-executor` | opus | high | Security-sensitive work |
 
-### Verification tiers
-
-| Level | Role | When |
+| Verification level | Role | When |
 |---|---|---|
 | none | - | Trivial work the user skips |
 | light | `light-verifier` | Mechanical `mech-executor` output |
 | standard | `verifier` | Judgment / multi-file features |
 | heavy | `verifier` (exhaustive) | Security, auth, secrets, crypto, financial |
 
-The edit-tool denylist on verifiers reduces write surface; it does not prevent every possible write if Bash is available.
+Model names never appear in the policy prose, only role names. Each role's model binding lives in one place (its file's frontmatter), so a model generation change is a one-line edit per role.
+
+## Prerequisites
+
+- Claude Code **v2.1.198 or later**.
+- A POSIX shell (macOS, Linux, WSL) only if you want the optional helper scripts (diagnostics, telemetry, update reminder). The configuration itself works anywhere Claude Code runs.
+- A restart of Claude Code may be needed after install, because the agents directory is scanned at startup.
+
+## What it changes, and what it does not
+
+Installed under `~/.claude/`:
+
+| Path | What lands there |
+|---|---|
+| `settings.json` | Adds a `fallbackModel` chain; proposes `model: "best"` only with your approval; merges optional hook entries. Unrelated keys untouched. |
+| `agents/` | Seven role files. |
+| `CLAUDE.md` | One clearly marked policy block between `pathfinder:begin` and `pathfinder:end` markers. Text outside the markers is never touched. |
+| `pathfinder/` | Version stamp, install manifest, checklist copy, optional helper scripts, optional logs. |
+
+It does **not** modify project files by default, does not grant permissions, does not enable bypass-permissions mode, does not weaken `permissions.deny`, and does not override managed, project, or local settings. The installer shows you a plan and waits for approval before writing; that approval gate is a convention the runbook asks agents to follow, not a technical enforcement boundary.
 
 ## Install
-
-Minimum Claude Code: **v2.1.198**.
 
 ```text
 Read install/AGENT-INSTALL.md from this pathfinder checkout
@@ -49,57 +71,56 @@ and follow it to install pathfinder into my global Claude Code configuration.
 Show me the full plan of changes and get my approval before writing anything.
 ```
 
-The approval gate is a convention the runbook asks agents to follow, not a technical enforcement boundary. Read the templates under `templates/` and prefer a tag or commit pin for network installs.
+Updates are idempotent: re-run the install from a newer checkout and it upgrades in place, or repairs missing pathfinder-owned files at the same version. Uninstall follows the same runbook.
 
-Idempotent upgrades: re-run install; see `CHANGELOG.md` via the update section of the runbook.
+## Security and trust
 
-## Trust
+- Pathfinder installs executable hook scripts and global Claude Code configuration. Review the source before installing.
+- Install from a trusted local checkout or a pinned commit. A branch name is not an immutable security pin; when you pin a tag, the installer resolves and records its full commit.
+- Never run install, update, diagnostics, or hook setup with sudo or as another user.
+- Anything that can modify `~/.claude/` can alter hooks, agents, or instructions. That is a local-account trust boundary, not a sandbox, and pathfinder does not change it.
+- Verifier roles have edit tools denied, but this reduces write surface rather than eliminating it: Bash can still write. Verifiers are a quality mechanism, not a security sandbox.
 
-- Trust flows from this repo and your review of installed bytes.
-- Pin tag/SHA when fetching remotely so review matches install.
-- Installer should show a plan and wait for approval (convention, not enforcement).
+## Telemetry and the update reminder (both optional)
 
-## Telemetry (optional)
+If you opt in, hooks call a small local script on `SubagentStart`, `SubagentStop`, and `SessionEnd`, appending JSONL lines (timestamp, event type, session and agent IDs) under `~/.claude/pathfinder/logs/`. It records nothing else: no prompts, no source code in the current helper. It is best-effort only - missed events are normal, and it is not an audit trail or a complete session record. If hooks cannot be installed, diagnostics still work; pathfinder never relies on a model remembering to log.
 
-Hooks may call `scripts/pathfinder-log.sh` on `SubagentStart`, `SubagentStop`, and `SessionEnd`. Output is JSONL under `~/.claude/pathfinder/logs/`.
-
-This is **best-effort orchestration telemetry**. It is not an audit trail, not a complete session record, and not a full session history. Missed events are expected if hooks fail or are disabled. If hooks cannot be installed, use diagnostics only; pathfinder does not rely on the orchestrator remembering to log.
-
-A separate optional `SessionStart` hook (`templates/hooks/pathfinder-version-watch.md`) injects a revalidation reminder at session start when Claude Code has updated, following the checklist in `docs/REVALIDATION.md`.
+A second optional hook checks at session start whether Claude Code updated and, if so, injects a short reminder to re-check the handful of Claude Code facts pathfinder depends on (the checklist is `docs/REVALIDATION.md`, copied into `~/.claude/pathfinder/` at install). Claude Code ships often, so expect the reminder a few times a month; it fires once per version change and is deliberately unthrottled, because patch releases can carry behavior changes.
 
 ```bash
-./scripts/pathfinder-diag.sh   # posix
-./scripts/pathfinder-stats.sh  # empty logs are normal
+./scripts/pathfinder-diag.sh   # health check (POSIX)
+./scripts/pathfinder-stats.sh  # summarize logs; empty logs are normal
 ```
 
 ## Project-local (optional)
 
-Prefer native `.claude/` project settings and instructions for rules that must apply.
+Prefer native `.claude/` project settings and instructions for rules that must apply to a project. Optionally, a project may carry `.pathfinder/config.json` (see `examples/.pathfinder/config.json`) with `default_verification` and `logging` as hints; tools and docs may read it, and the global install never merges project policy.
 
-Optional: `.pathfinder/config.json` (see `examples/.pathfinder/config.json`) with `default_verification` and `logging`. Tools and docs may read it; the global install never merges project policy.
+## Fallback behavior
 
-## Fallback
+Role frontmatter uses model aliases (`opus`, `sonnet`, `haiku`), so bindings survive model releases. The suggested main-session setting is `best` (Fable 5 when available, else latest Opus), and `fallbackModel: ["opus", "sonnet"]` covers overload and unavailability. Security work stays on `security-executor` regardless of the main-session model.
 
-Policy prose never names models. Role frontmatter uses aliases (`opus`, `sonnet`, `haiku`). Main session prefers `best` (Fable 5 when available, else latest Opus). `fallbackModel: ["opus", "sonnet"]` covers overload/unavailability. Security work stays on `security-executor`.
+## Updating and removing
 
-## Platforms
-
-- Config and agents: any Claude Code host meeting the minimum version.
-- Shell helpers: POSIX only (macOS, Linux, WSL). Native Windows without POSIX shell: runbook file-tool path only.
+- **Update**: re-run the install from a newer checkout; the runbook shows the changelog slice and upgrades the single policy block in place.
+- **Check health**: `scripts/pathfinder-diag.sh` verifies version, files, markers, collisions, manifest, and drift against your checkout.
+- **Uninstall**: tell Claude Code to follow the Uninstall section of `install/AGENT-INSTALL.md`. It removes the policy block and pathfinder agents, offers a settings restore from the first backup, and leaves logs unless you ask for their deletion.
 
 ## Docs
 
 | Doc | Contents |
 |---|---|
-| [docs/research.md](./docs/research.md) | Sourced research |
-| [docs/design.md](./docs/design.md) | Design rationale + pathfinder v1 appendix |
-| [docs/usage-examples.md](./docs/usage-examples.md) | Short examples |
+| [docs/research.md](./docs/research.md) | Sourced research behind the design |
+| [docs/design.md](./docs/design.md) | Design rationale + v1 appendix |
+| [docs/usage-examples.md](./docs/usage-examples.md) | Short practical examples |
+| [docs/REVALIDATION.md](./docs/REVALIDATION.md) | The Claude Code facts pathfinder depends on, and how to re-check them |
 | [docs/improvement-roadmap.md](./docs/improvement-roadmap.md) | Deferred ideas only |
 | [install/AGENT-INSTALL.md](./install/AGENT-INSTALL.md) | Install, update, uninstall, diagnostics |
 
-## Uninstall
+## Platforms
 
-Tell Claude Code to follow the Uninstall section of `install/AGENT-INSTALL.md`. Logs under `~/.claude/pathfinder/logs` are left unless you ask to delete them.
+- Configuration and agents: any Claude Code host meeting the minimum version.
+- Shell helpers: POSIX only (macOS, Linux, WSL). Native Windows without a POSIX shell uses the runbook's file-tool path; skip the helpers.
 
 ## License
 

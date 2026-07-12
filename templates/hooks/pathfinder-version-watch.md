@@ -16,8 +16,14 @@ The script keeps the last-seen version in `~/.claude/pathfinder/last-version`.
 
 - First run: records the current version silently and never fires.
 - Version unchanged: exits silently.
-- Version changed: updates the state file and prints a short notice to stdout. For `SessionStart`, stdout "is added as context for Claude", so the session starts with the reminder in view and Claude can offer to run the revalidation checklist (`docs/REVALIDATION.md` in the pathfinder repo).
+- Version changed: updates the state file and prints a short notice to stdout. For `SessionStart`, stdout "is added as context for Claude", so the session starts with the reminder in view.
 - Any failure (missing binary, unparseable output, unwritable state): exits 0 silently. A broken watcher must never block a session.
+
+The notice has four fixed lines: what changed, a calibration line (most updates do not affect pathfinder), the three documentation surfaces to re-check (model-config, hooks, sub-agents), and the checklist location. The checklist line points at the installed copy `~/.claude/pathfinder/REVALIDATION.md` when it exists; on older installs without the copy it falls back to naming the repo file.
+
+A fifth line naming the pathfinder repo path is printed only when all of the following hold: the install manifest (`~/.claude/pathfinder/INSTALL`) is valid, the recorded path is absolute and free of control characters, the path exists, and it passes the usable-checkout test (VERSION plus every required role template present). Anything less and the line is suppressed; a directory that is not a real pathfinder checkout is never labeled as the place fixes happen.
+
+Output boundary: session-start stdout becomes Claude-facing context, so the script prints only validated values. A malformed `last-version` is reported as "a previous version" (and the state file is repaired), never echoed raw. Malformed manifest values suppress the lines derived from them.
 
 ## Install
 
@@ -59,5 +65,6 @@ Wiring notes:
 
 - Detects version bumps only, not documentation changes. Behavior changes normally ship with a version, but nothing guarantees it.
 - A version bump does not mean anything pathfinder uses actually changed. The notice is a prompt to check, not a finding.
+- Expected frequency: Claude Code ships often, so plan on seeing the notice a few times a month. It fires exactly once per version change (the state file updates immediately), so there is no repeat nagging. It is deliberately unthrottled: patch-level releases carry behavior changes (2.1.198 changed the built-in Explore model inheritance), so filtering by version component would miss real drift.
 - Missed runs are normal if hooks are disabled, fail, time out, or run on a platform without a POSIX shell.
 - First run after install records silently; the hook only fires from the second version onward.

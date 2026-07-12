@@ -2,6 +2,25 @@
 
 All notable changes to pathfinder. Installed version is stamped in `~/.claude/CLAUDE.md` (`<!-- pathfinder vX.Y.Z -->`) and `~/.claude/pathfinder/VERSION`.
 
+## v1.1.0 - 2026-07-12
+
+Update mechanics, documentation, and installation trust boundary. The Claude Code documentation claims themselves were not re-verified in this release; the revalidation checklist keeps its prior date.
+
+| Change | Notes |
+|---|---|
+| Install manifest | `~/.claude/pathfinder/INSTALL` (schema 1, key=value): repo path, ref, resolved `source_commit`, version, working-style choice; written atomically with private modes |
+| Installed checklist copy | `docs/REVALIDATION.md` copied to `~/.claude/pathfinder/` so any session can read it |
+| Version-watch notice hardened | 4-5 validated lines; installed checklist path; repo line only for a verified usable checkout; malformed state never reaches output |
+| Drift diagnostics | `pathfinder-diag.sh` compares installed files against the local checkout: version ordering (update available vs checkout behind vs unorderable), byte drift on agents, helpers, checklist, and policy assembly; warn-only |
+| Recursive agent discovery | Preflight and diagnostics scan `~/.claude/agents/` recursively; duplicate or nested pathfinder `name:` claims are failures; frontmatter-only parsing |
+| Hook helper integrity | Referenced hook helpers must be regular executable files not writable by others; structural settings parsing via jq with an explicit skip note without it |
+| Update and repair flow | Complete state machine (newer / equal / older / unorderable source); same-version integrity check and approval-gated repair heals pre-1.1.0 installs |
+| Write discipline | Symlink-safe atomic writes for every pathfinder-owned file and parent directory; private backup dir `~/.claude/backups/pathfinder/` |
+| Source binding | Clean-worktree requirement for source-based writes; commit re-check immediately before writing; zero writes on mismatch |
+| Sanitized output | Diagnostics and the session-start notice never print raw values from mutable local files |
+| README | Rewritten as a first-time-user onboarding page with an explicit security and trust section |
+| Revalidation checklist | Adds the sub-agents documentation page and a recursive-discovery claim; runnable prompt covers all three doc pages |
+
 ## v1.0.0 - 2026-07-11
 
 Initial release of pathfinder: a Claude Code multi-model orchestration configuration layer (role agents, policy, settings, optional hooks).

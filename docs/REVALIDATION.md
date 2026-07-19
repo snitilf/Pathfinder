@@ -16,12 +16,17 @@ Claims below were last verified 2026-07-11 against the linked pages (see `docs/V
 | f | Built-in Explore inherits the main-session model unless overridden (pathfinder pins it to haiku) | https://code.claude.com/docs/en/sub-agents and https://code.claude.com/docs/en/model-config | `templates/agents/Explore.md`, `docs/design.md` |
 | g | Minimum Claude Code version claim is **2.1.198** | preflight rationale in the install runbook | `install/AGENT-INSTALL.md`, `templates/hooks/*.md`, `README.md` |
 | h | Agent discovery scans `~/.claude/agents/` recursively and requires unique `name:` values across the whole tree | https://code.claude.com/docs/en/sub-agents | `install/AGENT-INSTALL.md` preflight, `scripts/pathfinder-diag.sh` |
+| i | The subagent transcript JSONL carries `message.id`, `message.model`, and `message.usage.{output_tokens, input_tokens, cache_read_input_tokens, cache_creation_input_tokens}`, with multiple snapshot lines sharing one `message.id` (the final snapshot holds the final counts) | https://code.claude.com/docs/en/hooks (transcript format) | `scripts/pathfinder-log.sh`, `templates/hooks/pathfinder-telemetry.md` |
+
+Claim (i) is a new coupling surface added in v1.2.0 and has not yet had a live re-verification pass against the linked page; treat it as needing confirmation on the next revalidation run, not as already checked to the same standard as (a)-(h).
+
+Also covered here: pin compliance in `scripts/pathfinder-stats.sh` maps the alias pinned in agent frontmatter (`haiku`, `sonnet`, `opus`) to the concrete model id observed in a transcript (for example `haiku` to `claude-haiku-4-5-*`) by family prefix, because haiku ids carry a date suffix and the others do not, so there is no single normalization rule. This mapping rides on the same frontmatter and hooks claims as (e) and (c) above; if the alias table or the id format changes, update `scripts/pathfinder-stats.sh` in the same pass.
 
 Rules for applying drift:
 
 - Update every file in the row in one pass so the snippet, runbook, and docs cannot disagree.
 - If an alias disappears (for example `best`), pick the documented replacement and update the graceful-degradation story with it, not around it.
-- If a hook field disappears, remove it from the telemetry doc table; the log helper already null-defaults missing fields and needs no change unless an extraction key was renamed.
+- If a hook field disappears, remove it from the telemetry doc table. The log helper now also extracts `models` and the four token fields from the transcript at `agent_transcript_path` (row i); adding, removing, or renaming any of those extraction keys is itself a drift event against row (i) and requires updating `scripts/pathfinder-log.sh` and `templates/hooks/pathfinder-telemetry.md` together, not just a null-default check.
 - Never patch a claim by loosening its wording. Either the docs still support it or the row drifts.
 
 ## How to run this

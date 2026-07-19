@@ -104,9 +104,10 @@ if [ "$MANIFEST_VALID" = "1" ]; then
   fi
 fi
 
-# checklist line prefers the installed copy so any session can read it
+# checklist line prefers the installed copy so any session can read it,
+# and folds in the exact command to view it so acting is one paste
 if [ -f "$CHECKLIST" ]; then
-  CHECKLIST_LINE="Checklist: $CHECKLIST"
+  CHECKLIST_LINE="Checklist: $CHECKLIST (Run: cat \"$CHECKLIST\")"
 else
   CHECKLIST_LINE="Checklist: docs/REVALIDATION.md in the pathfinder repo."
 fi

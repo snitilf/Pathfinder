@@ -1,2 +1,2 @@
 <!-- pathfinder:begin -->
-<!-- pathfinder v1.1.0 -->
+<!-- pathfinder v1.2.0 -->

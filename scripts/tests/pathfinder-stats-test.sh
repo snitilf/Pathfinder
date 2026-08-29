@@ -80,20 +80,20 @@ L4="$WORK/l4"; mkdir -p "$L4"
 {
   # compliant pinned roles
   printf '{"ts":"2026-07-19T00:00:00Z",%s,"session_id":"s","agent_type":"scout","agent_id":"a1","reason":null,"models":["claude-haiku-4-5-20251001"],"output_tokens":100,"input_tokens":10,"cache_read_tokens":200,"cache_creation_tokens":5}\n' "$STOP"
-  printf '{"ts":"2026-07-19T00:00:01Z",%s,"session_id":"s","agent_type":"executor","agent_id":"a2","reason":null,"models":["claude-opus-4-8"],"output_tokens":500,"input_tokens":80,"cache_read_tokens":130000,"cache_creation_tokens":21000}\n' "$STOP"
+  printf '{"ts":"2026-07-19T00:00:01Z",%s,"session_id":"s","agent_type":"executor","agent_id":"a2","reason":null,"models":["claude-opus-5"],"output_tokens":500,"input_tokens":80,"cache_read_tokens":130000,"cache_creation_tokens":21000}\n' "$STOP"
   # off-pin: executor observed on sonnet
   printf '{"ts":"2026-07-19T00:00:02Z",%s,"session_id":"s","agent_type":"executor","agent_id":"a3","reason":null,"models":["claude-sonnet-5"],"output_tokens":50,"input_tokens":5,"cache_read_tokens":10,"cache_creation_tokens":2}\n' "$STOP"
   # legacy scout line (no model data)
   printf '{"ts":"2026-07-19T00:00:03Z",%s,"session_id":"s","agent_type":"scout","agent_id":"a4","reason":null}\n' "$STOP"
   # ungoverned: workflow-subagent on opus, general-purpose multi-model
-  printf '{"ts":"2026-07-19T00:00:04Z",%s,"session_id":"s","agent_type":"workflow-subagent","agent_id":"a5","reason":null,"models":["claude-opus-4-8"],"output_tokens":238,"input_tokens":20,"cache_read_tokens":300,"cache_creation_tokens":10}\n' "$STOP"
-  printf '{"ts":"2026-07-19T00:00:05Z",%s,"session_id":"s","agent_type":"general-purpose","agent_id":"a6","reason":null,"models":["claude-fable-5","claude-opus-4-8"],"output_tokens":70,"input_tokens":7,"cache_read_tokens":9,"cache_creation_tokens":1}\n' "$STOP"
+  printf '{"ts":"2026-07-19T00:00:04Z",%s,"session_id":"s","agent_type":"workflow-subagent","agent_id":"a5","reason":null,"models":["claude-opus-5"],"output_tokens":238,"input_tokens":20,"cache_read_tokens":300,"cache_creation_tokens":10}\n' "$STOP"
+  printf '{"ts":"2026-07-19T00:00:05Z",%s,"session_id":"s","agent_type":"general-purpose","agent_id":"a6","reason":null,"models":["claude-fable-5","claude-opus-5"],"output_tokens":70,"input_tokens":7,"cache_read_tokens":9,"cache_creation_tokens":1}\n' "$STOP"
   # unattributed
   printf '{"ts":"2026-07-19T00:00:06Z",%s,"session_id":"s","agent_type":"","agent_id":"a7","reason":null}\n' "$STOP"
 } > "$L4/2026-07-19.jsonl"
 O4="$WORK/o4"; PATHFINDER_LOG_DIR="$L4" PATHFINDER_AGENTS_DIR="$AG" sh "$STATS" > "$O4" 2>&1
 has 'routing table' "$O4" "routing table renders"
-has 'claude-opus-4-8 +calls=1 out=500 in=80 cache_read=130000 cache_creation=21000' "$O4" "routing tokens per field for executor/opus"
+has 'claude-opus-5 +calls=1 out=500 in=80 cache_read=130000 cache_creation=21000' "$O4" "routing tokens per field for executor/opus"
 has 'executor +pin=opus' "$O4" "executor pin=opus"
 has 'compliant=1 / 2 with model data \(50.0%\), off-pin=1' "$O4" "executor: 1 of 2 compliant, 1 off-pin (sonnet)"
 has 'claude-sonnet-5 +x1 \(OFF-PIN\)' "$O4" "off-pin sonnet flagged for executor"
@@ -102,7 +102,7 @@ has 'no model data' "$O4" "scout legacy line surfaced as no-model-data"
 has 'ungoverned delegation' "$O4" "ungoverned section renders"
 has 'workflow-subagent: calls=1' "$O4" "workflow-subagent reported as ungoverned"
 has 'general-purpose: calls=1' "$O4" "general-purpose reported as ungoverned"
-has 'claude-fable-5\+claude-opus-4-8' "$O4" "multi-model set shown for general-purpose"
+has 'claude-fable-5\+claude-opus-5' "$O4" "multi-model set shown for general-purpose"
 has 'distinguishable from telemetry' "$O4" "inheritance disclaimer present, no accusation"
 hasnt 'workflow-subagent.*OFF-PIN' "$O4" "ungoverned types are not accused of pin violations"
 
@@ -155,10 +155,18 @@ AG9="$WORK/agents9"; mkdir -p "$AG9"
 cp "$AG"/*.md "$AG9"/
 printf -- '---\nname: scout\nmodel: inherit\neffort: low\n---\n' > "$AG9/scout.md"
 L9="$WORK/l9"; mkdir -p "$L9"
-printf '{"ts":"2026-07-19T00:00:00Z",%s,"session_id":"s","agent_type":"scout","agent_id":"a1","reason":null,"models":["claude-opus-4-8"],"output_tokens":10,"input_tokens":1,"cache_read_tokens":1,"cache_creation_tokens":1}\n' "$STOP" > "$L9/2026-07-19.jsonl"
+printf '{"ts":"2026-07-19T00:00:00Z",%s,"session_id":"s","agent_type":"scout","agent_id":"a1","reason":null,"models":["claude-opus-5"],"output_tokens":10,"input_tokens":1,"cache_read_tokens":1,"cache_creation_tokens":1}\n' "$STOP" > "$L9/2026-07-19.jsonl"
 O9="$WORK/o9"; PATHFINDER_LOG_DIR="$L9" PATHFINDER_AGENTS_DIR="$AG9" sh "$STATS" > "$O9" 2>&1
 has 'scout .*pin=inherit \(alias not recognized\) - reporting only' "$O9" "unmappable alias reported, not a violation"
 hasnt 'scout.*OFF-PIN' "$O9" "unmappable alias never yields OFF-PIN"
+
+# ============================================================
+echo "== fixture 10: legacy concrete opus id remains compliant with the opus family alias =="
+L10="$WORK/l10"; mkdir -p "$L10"
+printf '{"ts":"2026-07-19T00:00:00Z",%s,"session_id":"s","agent_type":"executor","agent_id":"a1","reason":null,"models":["claude-opus-4-8"],"output_tokens":10,"input_tokens":1,"cache_read_tokens":1,"cache_creation_tokens":1}\n' "$STOP" > "$L10/2026-07-19.jsonl"
+O10="$WORK/o10"; PATHFINDER_LOG_DIR="$L10" PATHFINDER_AGENTS_DIR="$AG" sh "$STATS" > "$O10" 2>&1
+has 'executor .*pin=opus' "$O10" "legacy fixture uses the current opus family pin"
+has 'claude-opus-4-8 .*matches pin' "$O10" "legacy Opus 4.8 transcript remains family-compliant"
 
 # ============================================================
 echo

@@ -14,7 +14,7 @@ PF_BIN="$PF_DIR/bin"
 LOG_DIR="$PF_DIR/logs"
 MANIFEST="$PF_DIR/INSTALL"
 BACKUP_DIR="$CLAUDE_HOME/backups/pathfinder"
-MIN_VERSION="2.1.198"
+MIN_VERSION="2.1.219"
 EXPECTED_AGENTS="scout Explore mech-executor executor verifier light-verifier security-executor"
 PF_SCRIPTS="pathfinder-log.sh pathfinder-version-watch.sh pathfinder-diag.sh pathfinder-stats.sh"
 

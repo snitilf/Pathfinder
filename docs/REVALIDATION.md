@@ -2,21 +2,23 @@
 
 Pathfinder's coupling to Claude Code is a small, enumerable surface: model aliases, settings keys, hook events and payload fields, subagent frontmatter, and agent discovery. Everything else in the repo is role-based policy prose that no Claude Code update can break. Re-run this checklist when Claude Code updates; the optional version-watch hook (`templates/hooks/pathfinder-version-watch.md`) injects a reminder at session start when the version changes. The install places a reference copy of this file at `~/.claude/pathfinder/REVALIDATION.md` so any session can read it; fixes are applied in the repo checkout, because the update targets below are repo files.
 
-Claims below were last verified 2026-07-11 against the linked pages (see `docs/VERIFICATION-REPORT.md` section 1 for the quoted wording).
+Claims below were last verified 2026-08-28 against the linked pages (see `docs/VERIFICATION-REPORT.md` section 1 for the earlier quoted wording).
 
 ## Claims
 
 | # | Claim | Source | Update together if it drifts |
 |---|---|---|---|
 | a | Alias `best` resolves to Fable 5 where the organization has access, otherwise the latest Opus model | https://code.claude.com/docs/en/model-config (model aliases table) | `templates/settings.snippet.json`, `README.md`, `install/AGENT-INSTALL.md` |
+| a1 | On the direct Anthropic API, `opus` resolves to Opus 5 and `sonnet` resolves to Sonnet 5; provider defaults differ | same page, provider alias table | `README.md`, `docs/design.md`, `docs/research.md`, `install/AGENT-INSTALL.md` |
 | b | `fallbackModel` is set in settings as a JSON array of aliases or model names | same page, fallback model chains | `templates/settings.snippet.json`, `install/AGENT-INSTALL.md` |
 | c | Hook events `SubagentStart`, `SubagentStop`, `SessionEnd` exist with fields `session_id`, `agent_id`, `agent_type`, `last_assistant_message`, `agent_transcript_path`, `reason` | https://code.claude.com/docs/en/hooks | `templates/hooks/pathfinder-telemetry.md`, `scripts/pathfinder-log.sh` |
 | d | Command hooks support `async: true` | same hooks page, command hook fields | `templates/hooks/pathfinder-telemetry.md` |
 | e | Subagent frontmatter supports `model`, `effort`, `disallowedTools` | https://code.claude.com/docs/en/sub-agents | `templates/agents/*.md`, `install/AGENT-INSTALL.md` preflight |
 | f | Built-in Explore inherits the main-session model unless overridden (pathfinder pins it to haiku) | https://code.claude.com/docs/en/sub-agents and https://code.claude.com/docs/en/model-config | `templates/agents/Explore.md`, `docs/design.md` |
-| g | Minimum Claude Code version claim is **2.1.198** | preflight rationale in the install runbook | `install/AGENT-INSTALL.md`, `templates/hooks/*.md`, `README.md` |
+| g | Minimum Claude Code version claim is **2.1.219**, which is the first release with Opus 5 alias support and its documented category-based fallback behavior | same page, model aliases and automatic model fallback | `install/AGENT-INSTALL.md`, `templates/hooks/*.md`, `scripts/pathfinder-diag.sh`, `README.md` |
 | h | Agent discovery scans `~/.claude/agents/` recursively and requires unique `name:` values across the whole tree | https://code.claude.com/docs/en/sub-agents | `install/AGENT-INSTALL.md` preflight, `scripts/pathfinder-diag.sh` |
 | i | The subagent transcript JSONL carries `message.id`, `message.model`, and `message.usage.{output_tokens, input_tokens, cache_read_input_tokens, cache_creation_input_tokens}`, with multiple snapshot lines sharing one `message.id` (the final snapshot holds the final counts) | https://code.claude.com/docs/en/hooks (transcript format) | `scripts/pathfinder-log.sh`, `templates/hooks/pathfinder-telemetry.md` |
+| j | Opus 5 can fall back to Opus 4.8 for flagged cybersecurity requests, while a biology-flagged Opus 5 request can end in refusal | https://code.claude.com/docs/en/model-config (automatic model fallback) | `templates/agents/security-executor.md`, `docs/design.md`, `docs/research.md` |
 
 Claim (i) is a new coupling surface added in v1.2.0 and has not yet had a live re-verification pass against the linked page; treat it as needing confirmation on the next revalidation run, not as already checked to the same standard as (a)-(h).
 

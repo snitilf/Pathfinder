@@ -30,9 +30,9 @@ Anything security-sensitive (auth, secrets, crypto, validation) is routed to `se
 | `scout` | haiku | low | Read-only lookups |
 | `Explore` | haiku | low | Overrides the built-in Explore (pins cheap recon) |
 | `mech-executor` | sonnet | low | Fully-specified mechanical work |
-| `executor` | opus | medium | Implementation needing judgment |
+| `executor` | opus | high | Implementation needing judgment |
 | `light-verifier` | sonnet | low | Light check of mechanical work |
-| `verifier` | opus | medium | Standard and heavy verification |
+| `verifier` | opus | high | Standard and heavy verification |
 | `security-executor` | opus | high | Security-sensitive work |
 
 | Verification level | Role | When |
@@ -42,11 +42,12 @@ Anything security-sensitive (auth, secrets, crypto, validation) is routed to `se
 | standard | `verifier` | Judgment / multi-file features |
 | heavy | `verifier` (exhaustive) | Security, auth, secrets, crypto, financial |
 
-Model names never appear in the policy prose, only role names. Each role's model binding lives in one place (its file's frontmatter), so a model generation change is a one-line edit per role.
+Model names never appear in the policy prose, only role names.
+Each role's model binding lives in one place (its file's frontmatter), and family aliases follow compatible model releases without an edit.
 
 ## Prerequisites
 
-- Claude Code **v2.1.198 or later**.
+- Claude Code **v2.1.219 or later**.
 - A POSIX shell (macOS, Linux, WSL) only if you want the optional helper scripts (diagnostics, telemetry, update reminder). The configuration itself works anywhere Claude Code runs.
 - A restart of Claude Code may be needed after install, because the agents directory is scanned at startup.
 
@@ -98,7 +99,11 @@ Prefer native `.claude/` project settings and instructions for rules that must a
 
 ## Fallback behavior
 
-Role frontmatter uses model aliases (`opus`, `sonnet`, `haiku`), so bindings survive model releases. The suggested main-session setting is `best` (Fable 5 when available, else latest Opus), and `fallbackModel: ["opus", "sonnet"]` covers overload and unavailability. Security work stays on `security-executor` regardless of the main-session model.
+Role frontmatter uses model aliases (`opus`, `sonnet`, `haiku`), so bindings survive model releases.
+On the direct Anthropic API, those aliases currently resolve to Opus 5, Sonnet 5, and Haiku 4.5.
+Third-party providers can resolve the same aliases to older versions, so deployments that require an exact version should set the documented `ANTHROPIC_DEFAULT_*_MODEL` variables.
+The suggested main-session setting is `best` (Fable 5 when available, else latest Opus), and `fallbackModel: ["opus", "sonnet"]` covers overload and unavailability.
+Security work stays on `security-executor` regardless of the main-session model.
 
 ## Updating and removing
 

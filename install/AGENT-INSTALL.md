@@ -4,13 +4,14 @@ This document is for an AI agent (Claude Code) installing pathfinder on a user's
 
 ## Minimum version
 
-**Claude Code v2.1.198 or later.**
+**Claude Code v2.1.219 or later.**
 
-Why: as of 2.1.198 the built-in Explore agent inherits the main-session model (pathfinder overrides it to haiku), subagent frontmatter for `model` / `effort` / `disallowedTools` is required behavior, and the product surface pathfinder targets is documented from that line forward.
+Why: Opus 5 alias support and its documented safety fallback behavior require 2.1.219.
+The built-in Explore inheritance behavior that pathfinder overrides dates to 2.1.198, and Sonnet 5 support dates to 2.1.197.
 
 Preflight must detect the version. If undetectable, stop and say so clearly. If below minimum, refuse install (or hard-warn and require explicit user override).
 
-Revalidated against Claude Code docs (2026-07): model aliases include `best`, `opus`, `sonnet`, `haiku`, `fable`; settings keys `model` and `fallbackModel` (array); hooks `SubagentStart`, `SubagentStop`, `SessionEnd`, `SessionStart`.
+Revalidated against Claude Code docs (2026-08): model aliases include `best`, `opus`, `sonnet`, `haiku`, `fable`; on the direct Anthropic API, `opus` resolves to Opus 5 and `sonnet` resolves to Sonnet 5; settings keys include `model` and `fallbackModel` (array); hooks include `SubagentStart`, `SubagentStop`, `SessionEnd`, and `SessionStart`.
 
 ## What you are installing
 
@@ -82,7 +83,7 @@ This is also how pre-1.1.0 installs (no manifest, no checklist copy) heal when t
 
 ## Step 1 - Preflight (read-only)
 
-1. **Claude Code version:** run `claude --version`. Parse `x.y.z`. If missing or unparseable: **stop** ("version undetectable"). If `< 2.1.198`: **refuse** unless the user explicitly overrides in writing.
+1. **Claude Code version:** run `claude --version`. Parse `x.y.z`. If missing or unparseable: **stop** ("version undetectable"). If `< 2.1.219`: **refuse** unless the user explicitly overrides in writing.
 2. Read `~/.claude/settings.json` (note `model`, `fallbackModel`, `availableModels`, existing `hooks`). Missing file is fine (create later).
 3. Read `~/.claude/CLAUDE.md` if present. Count `pathfinder:begin` / `pathfinder:end`.
 4. **Scan `~/.claude/agents/` recursively** (Claude Code discovers agents in subdirectories too and requires unique `name:` values across the whole tree). Read frontmatter `name:` from every `.md` file at any depth; parse only the YAML frontmatter between the first `---` pair, never body text. Flag: duplicate names anywhere; any file (nested or root) claiming a pathfinder name: `scout`, `Explore`, `mech-executor`, `executor`, `verifier`, `light-verifier`, `security-executor`.
@@ -231,7 +232,7 @@ On request:
 
 Health (failures):
 
-- Claude version >= 2.1.198
+- Claude version >= 2.1.219
 - Marker counts 1/1 for pathfinder
 - Seven root agents present; no duplicate `name:` anywhere under `~/.claude/agents/` (recursive); no nested file claiming a pathfinder role name
 

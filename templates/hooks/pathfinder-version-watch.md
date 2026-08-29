@@ -6,7 +6,7 @@ Facts below are taken from the Claude Code hooks reference: https://code.claude.
 
 ## Requirements
 
-- Claude Code **v2.1.198** or later (pathfinder minimum).
+- Claude Code **v2.1.219** or later (pathfinder minimum).
 - POSIX shell for `scripts/pathfinder-version-watch.sh` (macOS, Linux, WSL).
 - The `claude` binary on PATH in the hook environment. Hook payloads carry no version field and there is no version environment variable, so the script runs `claude --version` itself.
 

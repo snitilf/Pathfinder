@@ -6,7 +6,7 @@ Field and option claims below are taken from the Claude Code hooks reference: ht
 
 ## Requirements
 
-- Claude Code **v2.1.198** or later (pathfinder minimum).
+- Claude Code **v2.1.219** or later (pathfinder minimum).
 - POSIX shell for `scripts/pathfinder-log.sh` (macOS, Linux, WSL). Native Windows without a POSIX shell: leave hooks uninstalled or adapt the command yourself; auto-logging is optional.
 - Install the helper to a stable path, for example `~/.claude/pathfinder/bin/pathfinder-log.sh`, then point hooks at it.
 

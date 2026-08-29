@@ -45,24 +45,24 @@ field() { printf '%s' "$1" | jq -c "$2" 2>/dev/null; }
 # ---------------------------------------------------------------------------
 T1="$WORK/t1.jsonl"
 {
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-4-8","usage":{"output_tokens":4,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-4-8","usage":{"output_tokens":4,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-4-8","usage":{"output_tokens":4,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-4-8","usage":{"output_tokens":12474,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-5","usage":{"output_tokens":4,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-5","usage":{"output_tokens":4,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-5","usage":{"output_tokens":4,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_X","model":"claude-opus-5","usage":{"output_tokens":12474,"input_tokens":10,"cache_read_input_tokens":20166,"cache_creation_input_tokens":1496}}}'
 } > "$T1"
 run_line "{\"hook_event_name\":\"SubagentStop\",\"agent_transcript_path\":\"$T1\"}"
 ok "dedup output_tokens=12474 (not 12486)" "$(field "$LINE" .output_tokens)" "12474"
 ok "dedup input_tokens=10 (not 40)"         "$(field "$LINE" .input_tokens)" "10"
 ok "dedup cache_read_tokens=20166 (not 80664)"     "$(field "$LINE" .cache_read_tokens)" "20166"
 ok "dedup cache_creation_tokens=1496 (not 5984)"   "$(field "$LINE" .cache_creation_tokens)" "1496"
-ok "dedup models array"                     "$(field "$LINE" .models)" '["claude-opus-4-8"]'
+ok "dedup models array"                     "$(field "$LINE" .models)" '["claude-opus-5"]'
 
 # ---------------------------------------------------------------------------
 # fixture 2: PRIVACY. transcript carries prose in text fields; log line must
 # contain only model string + integers, no prose.
 # ---------------------------------------------------------------------------
 T2="$WORK/t2.jsonl"
-printf '%s\n' '{"type":"assistant","message":{"id":"msg_P","model":"claude-opus-4-8","content":[{"type":"text","text":"SECRETPROSE_should_never_appear_in_log"}],"usage":{"output_tokens":100,"input_tokens":5,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$T2"
+printf '%s\n' '{"type":"assistant","message":{"id":"msg_P","model":"claude-opus-5","content":[{"type":"text","text":"SECRETPROSE_should_never_appear_in_log"}],"usage":{"output_tokens":100,"input_tokens":5,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$T2"
 run_line "{\"hook_event_name\":\"SubagentStop\",\"agent_transcript_path\":\"$T2\"}"
 if printf '%s' "$LINE" | grep -q "SECRETPROSE"; then
   ok "privacy: no transcript prose in log line" "prose-leaked" "no-prose"
@@ -104,11 +104,11 @@ ok "all-synthetic: cache_creation null"   "$(field "$LINE" .cache_creation_token
 # ---------------------------------------------------------------------------
 T5="$WORK/t5.jsonl"
 {
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_o","model":"claude-opus-4-8","usage":{"output_tokens":10,"input_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_o","model":"claude-opus-5","usage":{"output_tokens":10,"input_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
   printf '%s\n' '{"type":"assistant","message":{"id":"msg_f","model":"claude-fable-5","usage":{"output_tokens":20,"input_tokens":2,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
 } > "$T5"
 run_line "{\"hook_event_name\":\"SubagentStop\",\"agent_transcript_path\":\"$T5\"}"
-ok "multi-model: sorted distinct array" "$(field "$LINE" .models)" '["claude-fable-5","claude-opus-4-8"]'
+ok "multi-model: sorted distinct array" "$(field "$LINE" .models)" '["claude-fable-5","claude-opus-5"]'
 ok "multi-model: summed output"         "$(field "$LINE" .output_tokens)" "30"
 
 # ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ ok "directory transcript: models null" "$(field "$LINE" .models)" "null"
 
 # unreadable file
 TU="$WORK/tu.jsonl"
-printf '%s\n' '{"type":"assistant","message":{"id":"msg_u","model":"claude-opus-4-8","usage":{"output_tokens":1,"input_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$TU"
+printf '%s\n' '{"type":"assistant","message":{"id":"msg_u","model":"claude-opus-5","usage":{"output_tokens":1,"input_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}' > "$TU"
 chmod 000 "$TU"
 run_line "{\"hook_event_name\":\"SubagentStop\",\"agent_transcript_path\":\"$TU\"}"
 # root can read anything; only assert exit 0 + null when the guard actually blocks
@@ -143,8 +143,8 @@ chmod 644 "$TU"
 # ---------------------------------------------------------------------------
 T7="$WORK/t7.jsonl"
 {
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_g","model":"claude-opus-4-8","usage":{"output_tokens":9,"input_tokens":3,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
-  printf '%s\n' '{"type":"assistant","message":{"id":"msg_bad","model":"claude-opus-4-8","usage":{"output_tokens":5,"inp'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_g","model":"claude-opus-5","usage":{"output_tokens":9,"input_tokens":3,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}'
+  printf '%s\n' '{"type":"assistant","message":{"id":"msg_bad","model":"claude-opus-5","usage":{"output_tokens":5,"inp'
 } > "$T7"
 run_line "{\"hook_event_name\":\"SubagentStop\",\"agent_transcript_path\":\"$T7\"}"
 ok "malformed jsonl: exit 0" "$RC" "0"

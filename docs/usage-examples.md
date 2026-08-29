@@ -61,11 +61,11 @@ routing table (agent_type x models, SubagentStop with model data):
     (no model data: 1 lines)
   executor:
     claude-sonnet-5              calls=1 out=900 in=60 cache_read=4000 cache_creation=300
-    claude-opus-4-8              calls=1 out=5400 in=420 cache_read=210000 cache_creation=30000
+    claude-opus-5                calls=1 out=5400 in=420 cache_read=210000 cache_creation=30000
   workflow-subagent (unpinned):
-    claude-opus-4-8              calls=1 out=18000 in=1200 cache_read=9000 cache_creation=500
+    claude-opus-5                calls=1 out=18000 in=1200 cache_read=9000 cache_creation=500
   general-purpose (unpinned):
-    claude-fable-5+claude-opus-4-8 calls=1 out=3000 in=250 cache_read=1200 cache_creation=90
+    claude-fable-5+claude-opus-5 calls=1 out=3000 in=250 cache_read=1200 cache_creation=90
 
 pin compliance (observed model vs frontmatter pin; alias-to-family by prefix):
   scout              pin=haiku
@@ -76,14 +76,14 @@ pin compliance (observed model vs frontmatter pin; alias-to-family by prefix):
                      compliant=1 / 2 with model data (50.0%), off-pin=1
                      (also: 0 calls with no model data, not counted; total calls=2)
                      observed claude-sonnet-5            x1 (OFF-PIN)
-                     observed claude-opus-4-8            x1 (matches pin)
+                     observed claude-opus-5              x1 (matches pin)
 
 ungoverned delegation (types with no pinned model):
   workflow-subagent: calls=1
-                     observed claude-opus-4-8            x1
+                     observed claude-opus-5              x1
   general-purpose: calls=1
                      observed claude-fable-5             x1
-                     observed claude-opus-4-8            x1
+                     observed claude-opus-5              x1
   report only, not an accusation: these types have no pinned model. whether
   a model was set explicitly or inherited from the calling session is not
   distinguishable from telemetry (the log records no session model), so no

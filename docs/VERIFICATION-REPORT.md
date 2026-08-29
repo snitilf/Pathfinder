@@ -2,6 +2,9 @@
 
 Date: 2026-07-11. Static checks, dry-run, and documentation citations for the pathfinder tree as shipped.
 
+This is a historical v1.0 verification snapshot, not the current compatibility contract.
+The current minimum version and model-alias claims live in `README.md`, `install/AGENT-INSTALL.md`, and `docs/REVALIDATION.md`.
+
 Items not exercised are marked **not exercised**, not rounded up.
 
 ---

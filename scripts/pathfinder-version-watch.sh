@@ -94,6 +94,9 @@ if [ "$MANIFEST_VALID" = "1" ]; then
       /*)
         if [ "$CLEAN" = "$REPO" ] && [ -d "$REPO" ] && [ -f "$REPO/VERSION" ]; then
           USABLE=1
+          if [ -f "$REPO/.claude-plugin/plugin.json" ]; then
+            ROLES="scout verifier"
+          fi
           for r in $ROLES; do
             [ -f "$REPO/templates/agents/$r.md" ] || USABLE=0
           done
@@ -112,7 +115,7 @@ else
   CHECKLIST_LINE="Checklist: docs/REVALIDATION.md in the pathfinder repo."
 fi
 
-printf '%s\n' "Claude Code changed from $OLD_LABEL to $NEW since pathfinder was last revalidated."
+printf '%s\n' "Claude Code changed from $OLD_LABEL to $NEW since the last-seen version was recorded."
 printf '%s\n' "Most Claude Code updates do not affect pathfinder; run the checklist when convenient."
 printf '%s\n' "Re-check: model aliases and fallbackModel (https://code.claude.com/docs/en/model-config), hook events and payload fields (https://code.claude.com/docs/en/hooks), subagent frontmatter and discovery (https://code.claude.com/docs/en/sub-agents)."
 printf '%s\n' "$CHECKLIST_LINE"

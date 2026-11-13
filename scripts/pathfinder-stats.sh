@@ -18,8 +18,9 @@
 set -eu
 
 LOG_ROOT="${PATHFINDER_LOG_DIR:-$HOME/.claude/pathfinder/logs}"
-AGENTS_DIR="${PATHFINDER_AGENTS_DIR:-$HOME/.claude/agents}"
-PINNED_ROLES="scout Explore mech-executor executor verifier light-verifier security-executor"
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+AGENTS_DIR="${PATHFINDER_AGENTS_DIR:-$CLAUDE_HOME/agents}"
+PINNED_ROLES="scout Explore mech-executor executor verifier light-verifier security-executor pathfinder:scout pathfinder:verifier"
 
 if [ ! -d "$LOG_ROOT" ]; then
   echo "no pathfinder logs directory at $LOG_ROOT (normal if hooks are not installed)"
@@ -67,6 +68,16 @@ PINFILE="$(mktemp 2>/dev/null || true)"
 if [ -n "$PINFILE" ]; then
   for r in $PINNED_ROLES; do
     f="$AGENTS_DIR/$r.md"
+    case "$r" in
+      pathfinder:*)
+        # plugin defaults require an explicit source, not legacy bare agents.
+        if [ -n "${PATHFINDER_AGENTS_DIR:-}" ]; then
+          f="$AGENTS_DIR/${r#pathfinder:}.md"
+        else
+          f=""
+        fi
+        ;;
+    esac
     a=""
     if [ -f "$f" ]; then
       a="$(awk 'NR==1{if($0!="---")exit} NR>1&&/^---/{exit} NR>1&&/^model:[ \t]*/{sub(/^model:[ \t]*/,"");sub(/[ \t]*$/,"");print;exit}' "$f" 2>/dev/null || true)"
@@ -156,7 +167,7 @@ cat "$LOG_ROOT"/*.jsonl 2>/dev/null \
     printf "\n"
     print "routing table (agent_type x models, SubagentStop with model data):"
     if (b2p == 0) {
-      print "  (no schema-v2 lines with model data yet; run under v1.2.0 to populate)"
+      print "  (no schema-v2 lines with model data yet; optional transcript logging may populate these)"
     } else {
       for (t=1;t<=nat;t++) {
         a=atorder[t]
@@ -207,7 +218,7 @@ cat "$LOG_ROOT"/*.jsonl 2>/dev/null \
     }
 
     printf "\n"
-    print "ungoverned delegation (types with no pinned model):"
+    print "other agent types (no Pathfinder default):"
     any=0
     for (t=1;t<=nat;t++) {
       a=atorder[t]
@@ -223,6 +234,7 @@ cat "$LOG_ROOT"/*.jsonl 2>/dev/null \
     print "  a model was set explicitly or inherited from the calling session is not"
     print "  distinguishable from telemetry (the log records no session model), so no"
     print "  inheritance judgement is made here."
+    print "  model-family matches do not prove correct routing, quality, savings, or enforcement."
   }
   function pct(x, d) { return (d>0) ? sprintf("%.1f", 100*x/d) : "0.0" }
   function print_models(a,   k, parts, mm) {

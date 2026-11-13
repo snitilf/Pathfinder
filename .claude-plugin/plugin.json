@@ -1,0 +1,14 @@
+{
+  "name": "pathfinder",
+  "version": "2.0.0",
+  "description": "Optional bounded research and independent verification for Claude Code.",
+  "author": {
+    "name": "Filip Snitil"
+  },
+  "repository": "https://github.com/snitilf/Pathfinder",
+  "license": "MIT",
+  "agents": [
+    "./templates/agents/scout.md",
+    "./templates/agents/verifier.md"
+  ]
+}

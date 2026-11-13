@@ -1,23 +1,7 @@
-## Orchestration
+## Delegation (optional)
 
-Main-session policy. If you are running as a subagent role (scout, Explore, mech-executor, executor, verifier, light-verifier, security-executor), ignore this section entirely and just do the task you were given - do the work yourself and never spawn further subagents; delegation is a main-session-only concern.
+Do routine implementation and quick lookups in the main session. Delegate only a bounded, independent task or work whose lengthy output would crowd the main conversation.
 
-You are the orchestrator: keep planning, architecture, ambiguity resolution, and final review for yourself; delegate execution to the global role agents. The point is to spend main-session tokens on judgment and route volume work to cheaper executors - quality is protected by verification, not by using the biggest model everywhere.
+Use `pathfinder:scout` for broad read-only searches and `pathfinder:verifier` for independent checks. Give each helper the goal, constraints, acceptance conditions, and relevant paths. Check any scouted fact that determines an important decision.
 
-| Role | Delegate when |
-|---|---|
-| `scout` / `Explore` | Any search, lookup, or "where/how is X" reconnaissance |
-| `mech-executor` | Mechanical, fully-specified work: pattern refactors, convention-following tests, docs, bulk edits, running test suites |
-| `executor` | Implementation needing judgment: features, bug fixes, design-sensitive refactors |
-| `light-verifier` | Fresh-context verification of mechanical completed work (see verification section) |
-| `verifier` | Fresh-context verification of non-trivial completed work, before reporting it done |
-| `security-executor` | Anything security-sensitive (authn/authz, secrets, crypto, validation, hardening, vuln analysis) - never handle these in the main session |
-
-Delegation rules:
-
-- Spec in one shot: goal, constraints, done-criteria, relevant paths - and the why behind the request, not only the what.
-- Start with the cheapest role that can plausibly succeed; after two failed attempts, escalate one tier or take over - don't retry the same tier a third time.
-- Ad-hoc agents and workflow fan-outs outside these roles must set `model` explicitly - never let fan-out inherit the main-session model.
-- Non-trivial changes get a fresh-context verification pass before you report them done; prefer that over self-review. Choose light, standard, or heavy per the verification section.
-- Scout findings are inputs, not verified outputs: when a decision hinges on a single scouted fact, sanity-check it or re-scout - the verifier gate covers executor work, not reconnaissance.
-- Don't delegate: single-file reads you need immediately, decisions, or anything the user asked you personally to judge.
+These helpers do their own work and never delegate further. If a helper cannot complete the task, use its evidence to change the approach or take over. Do not repeat the same failed attempt without new information. Project rules and explicit user instructions take precedence over these preferences.

@@ -1,16 +1,11 @@
 # Releasing
 
-Maintainer checklist. Keep these stamps in sync:
+Release preparation stays local. Agents do not commit, tag, push, or publish. The maintainer controls those actions.
 
-1. Bump `VERSION`.
-2. Update `<!-- pathfinder vX.Y.Z -->` in `templates/claude-md/00-header.md`.
-3. Add a `CHANGELOG.md` entry.
-4. Commit (human), then tag and publish:
+Keep `VERSION`, `.claude-plugin/plugin.json`, the optional policy stamp in `templates/claude-md/00-header.md`, and the current changelog entry in sync. Run `sh scripts/check.sh` from a clean release checkout. Record the native Claude Code version and every skipped integration check in the verification report.
 
-```bash
-git tag vX.Y.Z
-git push && git push --tags
-gh release create vX.Y.Z --title "vX.Y.Z" --notes-from-tag
-```
+Before a release, test plugin discovery and both skills in a disposable Claude Code session. Exercise the migration guide against a temporary v1 installation that includes customized agent files, unrelated settings and hooks, and saved logs. Check that rollback restores only the selected changes.
 
-If `templates/agents/*.md` changed, keep them identical to a known-good install source before tagging.
+Use `docs/EVALUATION.md` for any quality or usage claim. Passing configuration checks does not establish better coding results. The repository contains no measured v2 advantage until a real task comparison is recorded.
+
+The maintainer reviews the diff and creates small commits using `type(scope): summary`. This repository does not authorize agents to push to a real remote or to push a default branch.

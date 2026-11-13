@@ -5,6 +5,15 @@
 
 set -eu
 
+# plugin checks inspect source only and never read the user's installation.
+if [ "${1:-}" = "--plugin" ]; then
+  [ "$#" -eq 2 ] || { printf '%s\n' 'usage: pathfinder-diag.sh --plugin PATH' >&2; exit 2; }
+  command -v python3 >/dev/null 2>&1 || { printf '%s\n' 'FAIL: python3 is required for plugin diagnostics'; exit 1; }
+  SCRIPT_DIR="$(CDPATH= cd "$(dirname "$0")" && pwd)"
+  exec python3 "$SCRIPT_DIR/check-plugin.py" "$2"
+fi
+[ "$#" -eq 0 ] || { printf '%s\n' 'usage: pathfinder-diag.sh [--plugin PATH]' >&2; exit 2; }
+
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 AGENTS_DIR="$CLAUDE_HOME/agents"
 CLAUDE_MD="$CLAUDE_HOME/CLAUDE.md"
@@ -98,27 +107,34 @@ else
   warn "settings.json missing"
 fi
 
-# CLAUDE_CODE_SUBAGENT_MODEL
+# environment settings can override requested defaults depending on precedence.
 if [ -n "${CLAUDE_CODE_SUBAGENT_MODEL:-}" ]; then
-  warn "CLAUDE_CODE_SUBAGENT_MODEL is set; it overrides per-agent model frontmatter"
+  warn "CLAUDE_CODE_SUBAGENT_MODEL is set; current Claude Code uses it below per-call and frontmatter models unless forced"
 else
   ok "CLAUDE_CODE_SUBAGENT_MODEL unset"
+fi
+if [ "${CLAUDE_CODE_SUBAGENT_MODEL_FORCE:-}" = "1" ]; then
+  warn "CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1 forces the configured subagent model or the main model"
+fi
+if [ -n "${CLAUDE_CODE_EFFORT_LEVEL:-}" ]; then
+  warn "CLAUDE_CODE_EFFORT_LEVEL overrides requested role effort"
 fi
 
 # markers
 MARKERS_OK=0
 if [ -f "$CLAUDE_MD" ]; then
-  BEGIN_COUNT="$(grep -c 'pathfinder:begin' "$CLAUDE_MD" 2>/dev/null || true)"
-  END_COUNT="$(grep -c 'pathfinder:end' "$CLAUDE_MD" 2>/dev/null || true)"
+  BEGIN_COUNT="$(grep -c '^[[:space:]]*<!-- pathfinder:begin -->[[:space:]]*$' "$CLAUDE_MD" 2>/dev/null || true)"
+  END_COUNT="$(grep -c '^[[:space:]]*<!-- pathfinder:end -->[[:space:]]*$' "$CLAUDE_MD" 2>/dev/null || true)"
   BEGIN_COUNT="${BEGIN_COUNT:-0}"
   END_COUNT="${END_COUNT:-0}"
-  if [ "$BEGIN_COUNT" = "1" ] && [ "$END_COUNT" = "1" ]; then
-    ok "exactly one pathfinder marker pair in CLAUDE.md"
+  if [ "$BEGIN_COUNT" = "1" ] && [ "$END_COUNT" = "1" ] && \
+    awk '/^[[:space:]]*<!-- pathfinder:begin -->[[:space:]]*$/{b=NR} /^[[:space:]]*<!-- pathfinder:end -->[[:space:]]*$/{e=NR} END{exit !(b>0 && e>b)}' "$CLAUDE_MD"; then
+    ok "exactly one ordered pathfinder marker pair in CLAUDE.md"
     MARKERS_OK=1
   elif [ "$BEGIN_COUNT" = "0" ] && [ "$END_COUNT" = "0" ]; then
     fail "no pathfinder markers in CLAUDE.md"
   else
-    fail "ambiguous markers: begin=$BEGIN_COUNT end=$END_COUNT (expected 1/1)"
+    fail "ambiguous or reversed markers: begin=$BEGIN_COUNT end=$END_COUNT (expected ordered 1/1)"
   fi
   if grep -q 'pathfinder v' "$CLAUDE_MD" 2>/dev/null; then
     STAMP="$(grep -o 'pathfinder v[0-9.]*' "$CLAUDE_MD" | head -1)"
@@ -287,13 +303,18 @@ case "$MANIFEST_STATE" in
       [ -d "$REPO" ] || USABLE=0
       if [ "$USABLE" = "1" ]; then
         [ -f "$REPO/VERSION" ] || USABLE=0
-        for name in $EXPECTED_AGENTS; do
-          [ -f "$REPO/templates/agents/$name.md" ] || USABLE=0
-        done
+        if [ -f "$REPO/.claude-plugin/plugin.json" ]; then
+          warn "recorded checkout is a v2 plugin migration target; read install/AGENT-INSTALL.md; legacy byte comparisons skipped"
+          USABLE=2
+        else
+          for name in $EXPECTED_AGENTS; do
+            [ -f "$REPO/templates/agents/$name.md" ] || USABLE=0
+          done
+        fi
       fi
       if [ "$USABLE" = "1" ]; then
         SOURCE_OK=1
-      else
+      elif [ "$USABLE" != "2" ]; then
         warn "recorded repo path missing or not a usable pathfinder checkout: $RCLEAN"
       fi
     fi

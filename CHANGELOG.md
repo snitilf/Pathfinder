@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to pathfinder. Installed version is stamped in `~/.claude/CLAUDE.md` (`<!-- pathfinder vX.Y.Z -->`) and `~/.claude/pathfinder/VERSION`.
+All notable changes to Pathfinder. The plugin version is recorded in `.claude-plugin/plugin.json` and `VERSION`. Legacy manual installations keep their own version stamp.
+
+## v2.0.0 - 2026-11-13
+
+Pathfinder becomes an optional native Claude Code plugin. This source package is prepared locally; no publication or installed migration is implied.
+
+- Keep two roles: namespaced scout and verifier. Routine implementation stays in the main session.
+- Replace blanket delegation with bounded research and risk-based independent review. Add an honest INCOMPLETE verdict.
+- Add explicit `/pathfinder:work` and `/pathfinder:review` skills. Preserve the user's main model, fallback chain, permissions, and built-in Explore.
+- Replace the global installer with local plugin loading and a reversible v1 migration guide. No hook or global policy is installed by default.
+- Correct dated model guidance and separate model defaults from guarantees.
+- Add task-outcome evaluation instructions instead of treating model matches as quality or savings evidence.
+- Keep optional legacy logs and diagnostics available. See the v2 verification report for checks actually exercised and remaining live-integration limits.
 
 ## v1.2.0 - 2026-07-18
 

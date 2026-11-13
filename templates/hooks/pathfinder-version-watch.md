@@ -1,5 +1,7 @@
 # Pathfinder version-watch hook
 
+This helper is optional and is not loaded by the v2 plugin. Follow the reviewed installation and backup rules in `install/AGENT-INSTALL.md` before changing configuration. Its state records only the last-seen Claude Code version, never completed validation.
+
 Best-effort tripwire only. It notices Claude Code version bumps and injects a revalidation reminder at session start. It is not a docs-drift detector and does not verify anything itself.
 
 Facts below are taken from the Claude Code hooks reference: https://code.claude.com/docs/en/hooks (fetched 2026-07-11).
@@ -21,7 +23,7 @@ The script keeps the last-seen version in `~/.claude/pathfinder/last-version`.
 
 The notice has four fixed lines: what changed, a calibration line (most updates do not affect pathfinder), the three documentation surfaces to re-check (model-config, hooks, sub-agents), and the checklist line. The checklist line points at the installed copy `~/.claude/pathfinder/REVALIDATION.md` when it exists and folds in the exact command to view it, so acting is one paste: `Checklist: ~/.claude/pathfinder/REVALIDATION.md (Run: cat "~/.claude/pathfinder/REVALIDATION.md")`. On older installs without the installed copy it falls back to naming the repo file, with no run command (the repo-relative path is not reliably pasteable from an arbitrary working directory).
 
-A fifth line naming the pathfinder repo path is printed only when all of the following hold: the install manifest (`~/.claude/pathfinder/INSTALL`) is valid, the recorded path is absolute and free of control characters, the path exists, and it passes the usable-checkout test (VERSION plus every required role template present). Anything less and the line is suppressed; a directory that is not a real pathfinder checkout is never labeled as the place fixes happen.
+A fifth line naming the pathfinder repo path is printed only when all of the following hold: the install manifest (`~/.claude/pathfinder/INSTALL`) is valid, the recorded path is absolute and free of control characters, the path exists, and it passes the usable-checkout test. That test requires VERSION and either both v2 role templates with a plugin manifest or all seven legacy templates. Anything less and the line is suppressed. This is a source-location check, not native plugin validation.
 
 Output boundary: session-start stdout becomes Claude-facing context, so the script prints only validated values. A malformed `last-version` is reported as "a previous version" (and the state file is repaired), never echoed raw. Malformed manifest values suppress the lines derived from them.
 

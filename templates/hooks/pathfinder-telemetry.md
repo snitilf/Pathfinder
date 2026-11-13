@@ -1,5 +1,7 @@
 # Pathfinder telemetry hooks
 
+This is an optional manual setup for legacy helpers. The v2 plugin does not load these hooks or change user settings. Use native `/usage` reports first. Follow the reviewed installation and backup rules in `install/AGENT-INSTALL.md` before changing configuration.
+
 Best-effort orchestration telemetry only. Not an audit trail, not a complete session record, not session history.
 
 Field and option claims below are taken from the Claude Code hooks reference: https://code.claude.com/docs/en/hooks (fetched 2026-07-11). The log helper null-defaults any missing field; do not invent values the payload omits.
@@ -43,6 +45,8 @@ On `SubagentStop` only, the helper also reads the transcript at `agent_transcrip
 Do not invent values. Read token counts and models from `agent_transcript_path`; when the transcript is absent, unreadable, or carries no qualifying usage lines, record null, never a fabricated value. Duration is still not recorded: it is not listed on these events and the helper does not invent it. If a field is absent in your installed Claude Code version, the helper records null.
 
 Privacy: extraction reads only the model string (`message.model`) and integer token counts (`message.usage.*`) out of the transcript. No prompt text, no source code, and no transcript prose ever enters the log line.
+
+For v2 logs, `agent_type` can be `pathfinder:scout` or `pathfinder:verifier`. Run statistics with `PATHFINDER_AGENTS_DIR` set explicitly to the plugin's `templates/agents` directory to compare against that source's defaults. Without an explicit directory, plugin defaults remain unknown rather than borrowing legacy global agents. This comparison does not establish the model loaded from a different installed plugin version.
 
 A run whose `models` array holds more than one entry is a **multi-model run**, not a "fallback". A run can span models either because `fallbackModel` triggered, or because an unpinned agent picked up a mid-session `/model` change; telemetry records the set observed and cannot tell which case produced it. Report the set and let a human judge; do not label it fallback.
 

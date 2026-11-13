@@ -6,7 +6,8 @@
 
 set -u
 
-REPO="${REPO:-/Users/snitil/Documents/GitHub/pathfinder}"
+HERE="$(CDPATH= cd "$(dirname "$0")" && pwd)"
+REPO="${REPO:-$(CDPATH= cd "$HERE/../.." && pwd)}"
 STATS="$REPO/scripts/pathfinder-stats.sh"
 WORK="$(mktemp -d)"
 PASS=0; FAIL=0
@@ -99,7 +100,7 @@ has 'compliant=1 / 2 with model data \(50.0%\), off-pin=1' "$O4" "executor: 1 of
 has 'claude-sonnet-5 +x1 \(OFF-PIN\)' "$O4" "off-pin sonnet flagged for executor"
 has 'scout .*pin=haiku' "$O4" "scout pin haiku"
 has 'no model data' "$O4" "scout legacy line surfaced as no-model-data"
-has 'ungoverned delegation' "$O4" "ungoverned section renders"
+has 'other agent types' "$O4" "other agent types section renders"
 has 'workflow-subagent: calls=1' "$O4" "workflow-subagent reported as ungoverned"
 has 'general-purpose: calls=1' "$O4" "general-purpose reported as ungoverned"
 has 'claude-fable-5\+claude-opus-5' "$O4" "multi-model set shown for general-purpose"
@@ -167,6 +168,24 @@ printf '{"ts":"2026-07-19T00:00:00Z",%s,"session_id":"s","agent_type":"executor"
 O10="$WORK/o10"; PATHFINDER_LOG_DIR="$L10" PATHFINDER_AGENTS_DIR="$AG" sh "$STATS" > "$O10" 2>&1
 has 'executor .*pin=opus' "$O10" "legacy fixture uses the current opus family pin"
 has 'claude-opus-4-8 .*matches pin' "$O10" "legacy Opus 4.8 transcript remains family-compliant"
+
+# ============================================================
+echo "== fixture 11: plugin names use explicitly supplied canonical templates =="
+L11="$WORK/l11"; mkdir -p "$L11"
+printf '{%s,"agent_type":"pathfinder:scout","models":["claude-haiku-5-5"],"output_tokens":10,"input_tokens":1,"cache_read_tokens":0,"cache_creation_tokens":0}\n' "$STOP" > "$L11/plugin.jsonl"
+printf '{%s,"agent_type":"pathfinder:verifier","models":["claude-opus-5-5"],"output_tokens":10,"input_tokens":1,"cache_read_tokens":0,"cache_creation_tokens":0}\n' "$STOP" >> "$L11/plugin.jsonl"
+O11="$WORK/o11"
+PATHFINDER_LOG_DIR="$L11" PATHFINDER_AGENTS_DIR="$REPO/templates/agents" sh "$STATS" > "$O11" 2>&1
+has 'pathfinder:scout .*pin=haiku' "$O11" "plugin scout reads explicit template default"
+has 'pathfinder:verifier .*pin=opus' "$O11" "plugin verifier reads explicit template default"
+has 'compliant=1 / 1' "$O11" "plugin model-family sample is matched"
+has 'do not prove.*quality.*savings' "$O11" "model match carries no quality or savings claim"
+
+O12="$WORK/o12"
+mkdir -p "$WORK/isolated-claude/agents"
+cp "$AG/scout.md" "$WORK/isolated-claude/agents/pathfinder:scout.md"
+(unset PATHFINDER_AGENTS_DIR; CLAUDE_HOME="$WORK/isolated-claude" PATHFINDER_LOG_DIR="$L11" sh "$STATS") > "$O12" 2>&1
+has 'pathfinder:scout .*pin=\(none read\)' "$O12" "legacy global agents do not supply plugin defaults"
 
 # ============================================================
 echo

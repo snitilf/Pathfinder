@@ -1,138 +1,31 @@
-# pathfinder - Design Rationale
+# Pathfinder design
 
-## Purpose
+Pathfinder is an optional set of Claude Code preferences. The main session owns implementation and final decisions. Helpers earn their place when they isolate broad searches or provide an independent check. Delegation itself is not a success measure.
 
-This document explains *why* pathfinder is shaped the way it is: three layers, role-based policy, aliases everywhere, effort tiers, and a verification gate. The empirical grounding (official docs, measured community numbers, subscription economics) lives in the [research report](./research.md); this is the argument from those facts to this design.
+## Two roles
 
-## The three layers
+`scout` searches many files for a bounded question and returns locations with evidence. It requests `haiku` at `low` effort and has only `Read`, `Glob`, and `Grep`. Quick reads stay in the main session. Its findings are inputs to a decision, not a code or security review.
 
-The core observation is that "who orchestrates", "who executes what", and "how delegation behaves" change at different rates and should therefore live in different places:
+`verifier` independently exercises substantial or risky changes. It requests `opus` at `high` effort. It returns CONFIRMED, REFUTED, or INCOMPLETE and never repairs findings. Security-sensitive and financial changes receive deeper checks of abuse cases and trust boundaries. Small changes need relevant checks without an automatic second agent.
 
-| Layer | File | Changes when | Mechanism |
-|---|---|---|---|
-| Machine | `~/.claude/settings.json` | Your plan/access changes | `model: "best"` + `fallbackModel` |
-| Roles | `~/.claude/agents/*.md` | A model tier is re-pointed | One `model:` line of frontmatter per role |
-| Policy | `~/.claude/CLAUDE.md` | Your working style changes | Prose rules written against role names |
+Both roles are leaves: they do their own work and never delegate further. The main session handles recovery and corrections. A failed check is useful evidence; an unrun check is incomplete.
 
-CLAUDE.md cannot set the main-session model (that is a settings/`/model` concern), which turns out to be a feature: it forces the clean split where settings decide *who* orchestrates and CLAUDE.md decides *how* it delegates.
+The separate `Explore`, implementation, light-review, and security-executor templates from v1 are removed. Their useful instructions belong in the main session or the single verifier. Existing installed v1 files require explicit migration; deleting a template does not remove anything from a user's machine.
 
-## Role-based policy, model-free prose
+## User-owned settings
 
-The single most important rule in pathfinder: **the policy text never names a model.** It says "delegate mechanical work to `mech-executor`", not "delegate to Sonnet". Model bindings exist in exactly one place - the frontmatter of each agent file.
+Pathfinder does not select the main model, set fallback chains, or expand permissions. `templates/settings.snippet.json` is an empty object. Leave the user's existing settings intact.
 
-This is what makes the fallback story degenerate into no-ops:
+Agent model and effort fields are requested defaults. Claude Code can override them per call, through environment settings, provider restrictions, or fallback. Check the model that actually ran before drawing conclusions about usage. The dated facts and source links live in [research.md](./research.md).
 
-```mermaid
-flowchart LR
-    P["Policy (CLAUDE.md)<br>roles only"] --> R["Roles (agents/*.md)<br>model: alias"] --> A["Aliases (Claude Code)<br>track recommended versions"] --> M["Models<br>come and go"]
-```
+## Optional policy and native packaging
 
-The June 2026 export-control suspension was a live test of this: accounts on aliases degraded gracefully - a notice banner, new sessions continuing on Opus - while users who had pinned the full `claude-fable-5` model ID got hard 404 errors.
-That is the fallback story working: `best` re-resolves, every role keeps its binding, and the policy text is already model-agnostic.
-The July 2026 subscription-to-credits boundary behaved similarly, with usage-credit consent handled by Claude Code rather than by pathfinder's overload fallback chain.
-The same design carried the role bindings from Opus 4.8 to Opus 5 and keeps Sonnet on Sonnet 5 without any frontmatter edit.
+The plugin carries the two agent definitions as one unit. It does not replace the built-in Explore agent or silently install global instructions. The short fragments in `templates/claude-md/` are an optional policy for users who want explicit delegation and review preferences. The personal working-style fragment remains a separate opt-in.
 
-On the direct Anthropic API, the current role aliases resolve as follows:
+Keep detailed procedures in skills that load when used. Use Claude Code's built-in review, verification, and usage tools where they fit. Pathfinder adds preferences for independent checks rather than a second execution system. See the [official plugin overview](https://code.claude.com/docs/en/plugins).
 
-| Alias | Current model |
-|---|---|
-| `opus` | Opus 5 |
-| `sonnet` | Sonnet 5 |
-| `haiku` | Haiku 4.5 |
+## Evidence and limits
 
-Provider defaults are not uniform.
-Claude Platform on AWS currently resolves `opus` to Opus 5 and `sonnet` to Sonnet 4.6; Amazon Bedrock and Google Cloud's Agent Platform resolve them to Opus 5 and Sonnet 4.5; Microsoft Foundry resolves them to Opus 4.6 and Sonnet 4.5.
-Pathfinder keeps aliases for resilience and documents the `ANTHROPIC_DEFAULT_*_MODEL` variables for deployments that need exact provider pins.
+Evaluate task completion, correction cycles, elapsed time, and whole-session usage with and without Pathfinder. Agent-only token counts omit the main session and cannot prove total savings. Matching a role's requested model proves neither correct delegation nor correct output.
 
-Three distinct failure modes get three distinct mechanisms - they are often conflated but shouldn't be:
-
-| Failure | Mechanism | Layer |
-|---|---|---|
-| Lost *access* to the frontier model | `best` alias | settings |
-| Model *overloaded / erroring* | `fallbackModel` chain | settings |
-| Model *deprecated* | aliases in role frontmatter | agents |
-
-## Why these six roles
-
-The role set is the smallest one that covers the delegation patterns that actually recur, mapped to the cheapest tier that reliably handles each:
-
-| Role | Tier argument |
-|---|---|
-| `scout`, `Explore` | Reconnaissance is the highest-volume, lowest-judgment token sink in a coding session (telemetry showed ~36% of calls were exploration even before deliberate routing). For *locating* facts - not judging them - Haiku at low effort is effectively equivalent; judgment stays with the orchestrator. Both roles carry a positive `tools: Read, Glob, Grep` allowlist, so "read-only" is enforced, not just prompted. |
-| `mech-executor` | Fully-specified work has its judgment already done - by the orchestrator, in the spec. Sonnet executes specs faithfully, and on subscriptions it additionally draws on the dedicated Sonnet-only weekly bucket (extra headroom on top of the shared all-models limit). |
-| `executor` | Real implementation needs local design judgment; Opus 5 is the current sweet spot below the frontier. Anthropic recommends it as the starting point for most agent workloads, and routine work does not always benefit from Fable-tier reasoning. |
-| `verifier` | Official guidance: independent fresh-context verifiers outperform self-critique. It is read-and-run only - a verifier that fixes things stops being independent. |
-| `security-executor` | Security work deserves consistently high effort and should not depend on the main-session model. Routing it to Opus means security work does not begin on Fable, but it does not make safety routing unreachable: Opus 5 can fall back to Opus 4.8 for flagged cybersecurity requests, and some flagged biology requests can still end in refusal. |
-
-The `Explore` override exists because Claude Code v2.1.198 changed the built-in Explore agent to inherit the main-session model - on a frontier main session, that silently upgrades your cheapest workload to your most expensive model. A same-name user-level agent shadows it.
-
-## Quality: verification over executor pedigree
-
-The intuitive objection to cheap executors is quality. pathfinder's answer is structural, not hopeful:
-
-1. The orchestrator writes complete one-shot specs (goal, constraints, done-criteria, the *why*) - most cheap-model failures are actually spec failures.
-2. Escalation is bounded: two failed attempts on a tier, then escalate or take over. No infinite cheap retries that burn more than they save.
-3. Non-trivial work passes through `verifier` - an adversarial, fresh-context pass that tries to *refute* the claimed outcome before the orchestrator reports it done.
-
-A verifier isn't free - it runs on Opus at high effort and re-reads context in a fresh session.
-It is cheaper than generation only because it reads-and-runs rather than writes-and-iterates, and because the gate is scoped to *non-trivial* work (small changes skip it; the policy says so).
-What it buys is a change of question: from "is the executor smart enough?" to "did the output survive an independent refutation attempt?" - a much better question.
-Two known limits, held honestly: same-tier verification catches context rot and unchecked claims, not capability-ceiling errors (Opus will not know what Opus cannot know); and the gate covers executor output, not scout reconnaissance, which is why the policy separately tells the orchestrator to sanity-check load-bearing scouted facts.
-For security-sensitive diffs, the verifier's own prompt escalates the scope of the pass, while its high effort remains fixed.
-
-## Effort tiers
-
-Effort is the second big quota lever after model choice, and the Fable-5 generation shifted the calculus: low effort on current models routinely matches previous-generation `xhigh`. pathfinder therefore pairs every role with an effort:
-
-| Role class | Effort | Why |
-|---|---|---|
-| Recon (`scout`, `Explore`) | `low` | High volume, near-zero judgment |
-| Mechanical (`mech-executor`) | `low` | Judgment lives in the spec |
-| Judgment (`executor`, `verifier`) | `high` | Current-model default and the documented balance of intelligence and token use |
-| Security (`security-executor`) | `high` | Correctness over cost |
-| Main session | `high` (user setting) | Official Fable 5 guidance: `high` for most work, `xhigh` for the longest horizons only |
-
-## Deliberately left out
-
-| Not included | Why |
-|---|---|
-| Per-project configuration | The six projects audited before building this had zero model policy in their CLAUDE.md files - correctly. A single global source of truth is the whole point; project files stay pure technical notes. |
-| Enforcement hooks (spawn guards, stop guards à la fable5-orchestrator) | Powerful but heavy; policy-only works well before adding machinery. If discipline slips, hooks are the documented next step - see the research report. |
-| `CLAUDE_CODE_SUBAGENT_MODEL` | It overrides every per-agent frontmatter globally, which is precisely the opposite of tiered routing. The installer warns if it's set. |
-| Pinned model IDs | Pinning trades resilience for reproducibility; for a personal global config, resilience wins. Organizations that need pinning have `ANTHROPIC_DEFAULT_*_MODEL`. |
-| An `opusplan` default | It's a great quota-saver but changes interactive feel (model switches mid-conversation). Offered as an opt-in in the FAQ instead. |
-
-## Prompting style inside the agents
-
-The agent system prompts follow the Fable-5-generation guidance from the research: goals and constraints instead of step-by-step scaffolding, an explicit statement of what *not* to do (no scope creep, verifier never fixes), evidence-audited progress claims, and "a precise *blocked because X* is a successful outcome" to prevent guessing. When editing the templates, keep that register - prescriptive checklists measurably degrade current-generation output.
-
----
-
-## Pathfinder v1 appendix
-
-This appendix records v1 extensions to the design above.
-
-### light-verifier
-
-Mechanical work from `mech-executor` does not always need a full Opus verification pass. `light-verifier` is a Sonnet, low-effort, independent fresh-context role that returns CONFIRMED or REFUTED and never fixes. It uses the same edit-tool denylist posture as `verifier` (`Write`, `Edit`, `NotebookEdit`, `Agent`, `Workflow`). That denylist reduces write surface; it does not prevent every possible write if Bash remains available for running tests. Security-sensitive work still uses the standard `verifier` with heavy (exhaustive) instructions. Light verification catches missed tests and obvious breaks, not deep design flaws.
-
-### Hooks telemetry and limits
-
-v1 can install Claude Code lifecycle hooks for `SubagentStart`, `SubagentStop`, and `SessionEnd` that call a small POSIX helper (`pathfinder-log.sh`) writing JSONL under `~/.claude/pathfinder/logs/`. This is best-effort orchestration telemetry only. It is not an audit trail, not a complete session record, and not ground truth of every tool call. Events can be missed when hooks are disabled, fail, time out, or run outside a POSIX environment. The helper soft-fails so a broken log path never breaks a session. If hooks cannot be installed cleanly, pathfinder ships diagnostics only and does not instruct the orchestrator to append logs after each delegation.
-
-Since v1.2.0 the helper also extracts per-role model and token data from the `SubagentStop` transcript, and `pathfinder-stats.sh` turns that into a routing table, a pin-compliance check against installed agent frontmatter, and an ungoverned-delegation section. This lets the logs answer which model each role actually ran on and how many tokens it cost, and whether pinned roles held their pin. Two limits stay in force regardless: (a) telemetry cannot distinguish a model chosen explicitly on an unpinned call from one silently inherited from the calling session - the transcripts look identical - so the stats output reports the mix and leaves the judgment to a human; (b) roughly a third or more of `SubagentStop` events carry an empty `agent_type` with no matching transcript and are unattributed - they carry no model data and are reported as their own bucket rather than folded into any role's total.
-
-### Optional `.pathfinder/config.json`
-
-Prefer native Claude Code project settings, agents, and instructions for behavior that must take effect. pathfinder does not implement a second policy merge system.
-
-Optional convention: if the project root contains `.pathfinder/config.json`, tools and docs may read it. Schema in v1:
-
-- `default_verification`: `none` | `light` | `standard` | `heavy` (soft default hint for non-security work)
-- `logging`: boolean (documentation hint only)
-
-The global install never merges project policy into `~/.claude/CLAUDE.md`. There is no project `policy.md` merge and no advisory `disabled_roles` list in v1.
-
-### Future external-trace correlation
-
-A future external supervisor may correlate a pathfinder session with an independent execution trace by optional run or session identifier if Claude Code exposes one. pathfinder does not depend on such a supervisor, does not install a wrapper or protocol for it, and does not change default install or role design for it. Pathfinder JSONL remains best-effort orchestration telemetry, distinct from any future ground-truth execution record.
+Retain optional logging only for questions native reports cannot answer. Existing log formats and historical records can remain readable without becoming a prerequisite for the plugin. A verifier's edit-tool denylist reduces accidental changes, but Bash can still write. Review instructions do not create a security sandbox.
